@@ -1,9 +1,16 @@
-const CACHE_NAME = 'xingyu-english-v0-4';
+const CACHE_NAME = 'xingyu-english-v1-0';
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
     const base = self.registration.scope;
-    await cache.addAll([base, new URL('index.html', base).href, new URL('icon-192.png', base).href, new URL('icon-512.png', base).href]);
+    await cache.addAll([
+      base,
+      new URL('index.html', base).href,
+      new URL('content.js', base).href,
+      new URL('manifest.json', base).href,
+      new URL('icon-192.png', base).href,
+      new URL('icon-512.png', base).href
+    ]);
     await self.skipWaiting();
   })());
 });
@@ -24,11 +31,13 @@ self.addEventListener('fetch', event => {
       const response = await fetch(request);
       if (response && response.ok) {
         const cache = await caches.open(CACHE_NAME);
-        cache.put(request, response.clone());
+        await cache.put(request, response.clone());
       }
       return response;
     } catch (err) {
-      if (request.mode === 'navigate') return (await caches.match(self.registration.scope)) || (await caches.match(new URL('index.html', self.registration.scope).href));
+      if (request.mode === 'navigate') {
+        return (await caches.match(self.registration.scope)) || (await caches.match(new URL('index.html', self.registration.scope).href));
+      }
       throw err;
     }
   })());

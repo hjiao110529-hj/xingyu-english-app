@@ -34,7 +34,7 @@
 <section id="about" class="view"><div class="head"><h2>⚙️ 使用说明</h2></div><div class="card"><b>当前内容库</b><p class="muted" id="aboutCounts"></p><div class="divider"></div><b>语音说明</b><p class="muted">“播放英语”调用设备提供的英语语音合成，音色因设备而异；“真人发音示例”会打开 YouGlish 搜索真实英语视频片段。此版本尚未内置逐句真人录音文件。</p><div class="divider"></div><b>题库说明</b><p class="muted">题目与故事以原创练习为主，覆盖生活、旅行、工作、悬疑、奇幻和原创动漫风格。动漫/奇幻部分使用原创角色与剧情，不复制具体作品台词。难度标签是学习参考，不等于官方 CEFR、雅思或托福成绩。</p><div class="divider"></div><b>下一步可继续升级</b><p class="muted">增加更多分级题库、错题本、间隔复习、真人录音资源、学习计划、口语反馈和数据备份。</p></div></section>
 </main>
 <nav class="nav"><button class="active" data-id="home" onclick="go('home',this)"><span class="ico">🏡</span>首页</button><button data-id="words" onclick="go('words',this)"><span class="ico">🔤</span>词汇</button><button data-id="listen" onclick="go('listen',this)"><span class="ico">🎧</span>听力</button><button data-id="speak" onclick="go('speak',this)"><span class="ico">🗣️</span>口语</button><button data-id="read" onclick="go('read',this)"><span class="ico">📚</span>阅读</button><button data-id="progress" onclick="go('progress',this)"><span class="ico">📈</span>成长</button></nav></div>
-<script src="./content.js"></script><script>
+<script src="./content.js?v=2"></script><script>
 const C=window.XY_CONTENT;
 const $=id=>document.getElementById(id);
 let stats={done:0,correct:0,words:0,minutes:0,history:[]};

@@ -1,0 +1,15 @@
+{
+  "name": "出货管家",
+  "short_name": "出货管家",
+  "description": "手机出货订单跟进与日期提醒",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f7f4",
+  "theme_color": "#426b55",
+  "icons": [
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}

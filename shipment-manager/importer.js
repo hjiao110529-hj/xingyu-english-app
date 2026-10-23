@@ -31,7 +31,7 @@ function rawValue(v){if(v===null||v===undefined)return '';if(v instanceof Date)r
 function makeRecord(row,index){const orderNo=rawValue(getCell(row,'orderNo'));const productName=rawValue(getCell(row,'productName'));const color=rawValue(getCell(row,'color'));const spec=rawValue(getCell(row,'spec'));const combined=rawValue(getCell(row,'productInfo'));const productInfo=combined||[productName,color,spec].filter(Boolean).join(' / ');
  const extraFields={};headers.forEach((h,i)=>{if(h&&selectedExtraHeaders.has(i)&&row[i]!==undefined&&String(row[i]??'').trim()!=='')extraFields[h]=rawValue(row[i])});
  const sourceRow=sourceRowStart+index;
- return {orderNo,productName,spec,color,productInfo,qty:rawValue(getCell(row,'qty')),shipDate:rawValue(getCell(row,'shipDate')),actualDate:rawValue(getCell(row,'actualDate')),docUrl:rawValue(getCell(row,'docUrl')),sourceFile:sourceName,sourceSheet,sourceRow,sourceKey:sourceName+'|'+sourceSheet+'|'+sourceRow,extraFields,_rawRow:row.map(rawValue)};
+ return {orderNo,productName,spec,color,productInfo,qty:rawValue(getCell(row,'qty')),shipDate:rawValue(getCell(row,'shipDate')),actualDate:rawValue(getCell(row,'actualDate')),docUrl:rawValue(getCell(row,'docUrl')),sourceFile:sourceName,sourceSheet,sourceRow,sourceKey:sourceName+'|'+sourceSheet+'|'+sourceRow+'|'+JSON.stringify(row.map(rawValue)),extraFields,_rawRow:row.map(rawValue)};
 }
 function records(){return rows.map((r,i)=>makeRecord(r,i)).filter(r=>r._rawRow.some(v=>String(v??'').trim()!==''))}
 function renderMapping(){

@@ -13,7 +13,7 @@ const fields=[
  {key:'actualDate',label:'实际出货日期',aliases:['实际出货日期','实际出货时间','出货完成日期','发货日期','实际发货日期','actual ship date']},
  {key:'docUrl',label:'在线文档链接',aliases:['在线文档链接','文档链接','链接','网址','url','link']}
 ];
-let rows=[],headers=[],mapping={},sourceName='',sourceSheet='',sourceRowStart=1,merges=[],selectedFields=new Set(),rawHeaderRow=[];
+let rows=[],headers=[],mapping={},sourceName='',sourceSheet='',sourceRowStart=1,merges=[],selectedFields=new Set(),selectedExtraHeaders=new Set();
 function norm(s){return String(s??'').trim().toLowerCase().replace(/[\\s_\\-（）()【】\\[\\]：:、.]/g,'')}
 function show(){$('importOverlay').classList.add('show');document.body.style.overflow='hidden'}
 function hide(){$('importOverlay').classList.remove('show');document.body.style.overflow=''}
@@ -29,7 +29,7 @@ function selectHtml(key){const selected=mapping[key]===undefined?-1:mapping[key]
 function getCell(row,key){const idx=mapping[key];return idx===undefined||idx<0||!selectedFields.has(key)?'':row[idx]===undefined?'':row[idx]}
 function rawValue(v){if(v===null||v===undefined)return '';if(v instanceof Date)return v.toISOString();return String(v).trim()}
 function makeRecord(row,index){const orderNo=rawValue(getCell(row,'orderNo'));const productName=rawValue(getCell(row,'productName'));const color=rawValue(getCell(row,'color'));const spec=rawValue(getCell(row,'spec'));const combined=rawValue(getCell(row,'productInfo'));const productInfo=combined||[productName,color,spec].filter(Boolean).join(' / ');
- const extraFields={};headers.forEach((h,i)=>{if(h&&row[i]!==undefined&&String(row[i]??'').trim()!=='')extraFields[h]=rawValue(row[i])});
+ const extraFields={};headers.forEach((h,i)=>{if(h&&selectedExtraHeaders.has(i)&&row[i]!==undefined&&String(row[i]??'').trim()!=='')extraFields[h]=rawValue(row[i])});
  const sourceRow=sourceRowStart+index;
  return {orderNo,productName,spec,color,productInfo,qty:rawValue(getCell(row,'qty')),shipDate:rawValue(getCell(row,'shipDate')),actualDate:rawValue(getCell(row,'actualDate')),docUrl:rawValue(getCell(row,'docUrl')),sourceFile:sourceName,sourceSheet,sourceRow,sourceKey:sourceName+'|'+sourceSheet+'|'+sourceRow,extraFields,_rawRow:row.map(rawValue)};
 }
@@ -38,6 +38,9 @@ function renderMapping(){
  $('mappingFields').innerHTML=fields.map(f=>selectHtml(f.key)).join('');
  $('mappingFields').querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{const k=s.dataset.map;const n=Number(s.value);if(n<0)delete mapping[k];else mapping[k]=n;renderPreview()}));
  $('mappingFields').querySelectorAll('input[type=checkbox][data-use]').forEach(c=>c.addEventListener('change',()=>{if(c.checked)selectedFields.add(c.dataset.use);else selectedFields.delete(c.dataset.use);renderPreview()}));
+ let extra=$('extraFieldSelection');if(!extra){extra=document.createElement('div');extra.id='extraFieldSelection';extra.className='notice';$('mappingArea').appendChild(extra)}
+ extra.innerHTML='<b>可选导入的其他原始列</b><p class="import-small">勾选后会保存在该记录的“其他导入字段”中；默认不勾选，避免手机页面带入不需要的列。</p><div class="import-fields">'+headers.map((h,i)=>'<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-extra="'+i+'"> '+escapeHtml(h)+'</label>').join('')+'</div>';
+ extra.querySelectorAll('input[data-extra]').forEach(c=>c.addEventListener('change',()=>{const i=Number(c.dataset.extra);if(c.checked)selectedExtraHeaders.add(i);else selectedExtraHeaders.delete(i);renderPreview()}));
  renderPreview();
 }
 function renderPreview(){
@@ -49,17 +52,17 @@ function renderPreview(){
 }
 async function readFile(file){
  sourceName=file.name;const ext=file.name.split('.').pop().toLowerCase();merges=[];sourceSheet='CSV';sourceRowStart=2;
- if(ext==='csv'){const text=await file.text();const parsed=parseCSV(text);let hi=0,best=-1;for(let i=0;i<Math.min(parsed.length,40);i++){const s=scoreHeader(parsed[i]);if(s>best){best=s;hi=i}}headers=(parsed[hi]||[]).map((x,i)=>String(x??'').trim()||'第'+(i+1)+'列');rows=parsed.slice(hi+1).filter(r=>r.some(c=>String(c??'').trim()!==''));sourceRowStart=hi+2;
+ if(ext==='csv'){const text=await file.text();const parsed=parseCSV(text);let hi=0,best=-1;for(let i=0;i<Math.min(parsed.length,40);i++){const s=scoreHeader(parsed[i]);if(s>best){best=s;hi=i}}headers=(parsed[hi]||[]).map((x,i)=>String(x??'').trim()||'第'+(i+1)+'列');rows=parsed.slice(hi+1);sourceRowStart=hi+2;
  }else if(ext==='xlsx'||ext==='xls'){
   if(!window.XLSX)throw new Error('Excel 读取组件未加载，请检查网络后重新打开 APP。');
   const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellDates:false,cellNF:true,cellText:true});sourceSheet=wb.SheetNames[0];if(!sourceSheet)throw new Error('文件中没有工作表。');
   const ws=wb.Sheets[sourceSheet],matrix=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:true});if(!matrix.length)throw new Error('文件中没有数据。');
   let hi=0,best=-1;for(let i=0;i<Math.min(matrix.length,40);i++){const s=scoreHeader(matrix[i]);if(s>best){best=s;hi=i}}
-  headers=(matrix[hi]||[]).map((v,i)=>String(v??'').trim()||'第'+(i+1)+'列');rows=matrix.slice(hi+1).filter(r=>r.some(c=>String(c??'').trim()!==''));sourceRowStart=hi+2;
+  headers=(matrix[hi]||[]).map((v,i)=>String(v??'').trim()||'第'+(i+1)+'列');rows=matrix.slice(hi+1);sourceRowStart=hi+2;
   merges=(ws['!merges']||[]).map(m=>({range:XLSX.utils.encode_range(m),startRow:m.s.r+1,endRow:m.e.r+1,startCol:m.s.c+1,endCol:m.e.c+1})).filter(m=>m.endRow>=sourceRowStart);
  }else throw new Error('暂时支持 .xlsx、.xls 和 .csv 文件。');
  if(!headers.length||!rows.length)throw new Error('没有识别到表头或数据行。');
- infer();$('fileSummary').textContent='文件：'+sourceName+'；工作表：'+sourceSheet+'；识别表头第 '+(sourceRowStart-1)+' 行；读取 '+rows.length+' 行非空数据。'+(merges.length?' 检测到 '+merges.length+' 个合并单元格区域，需检查后再导入。':'');
+ infer();selectedExtraHeaders=new Set();$('fileSummary').textContent='文件：'+sourceName+'；工作表：'+sourceSheet+'；识别表头第 '+(sourceRowStart-1)+' 行；读取 '+rows.length+' 行非空数据。'+(merges.length?' 检测到 '+merges.length+' 个合并单元格区域，需检查后再导入。':'');
  let warning=$('mergeWarning');if(!warning){warning=document.createElement('div');warning.id='mergeWarning';warning.className='notice';$('mappingArea').appendChild(warning)}
  warning.innerHTML=merges.length?'<b>合并单元格检查</b><br>'+merges.slice(0,12).map(m=>escapeHtml(m.range)+'（第 '+m.startRow+'–'+m.endRow+' 行）').join('；')+(merges.length>12?'；另有 '+(merges.length-12)+' 个区域':'')+'。系统不会自动将合并单元格值复制到其他行，请检查预览后再决定是否导入。':'未检测到合并单元格区域。';
  $('mappingArea').hidden=false;$('previewArea').hidden=false;renderMapping();

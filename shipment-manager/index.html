@@ -15,12 +15,15 @@
 
 .import-overlay{display:none;position:fixed;inset:0;background:#14251bcc;z-index:20;align-items:flex-end;justify-content:center}.import-overlay.show{display:flex}.import-sheet{background:var(--bg);width:100%;max-width:760px;max-height:94dvh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom))}.import-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.import-top h2{font-size:19px;margin:0}.import-small{font-size:12px;color:var(--muted);line-height:1.6}.import-upload{background:white;border:1px dashed #aab9ad;border-radius:14px;padding:16px;margin:14px 0}.import-upload input{width:100%;font-size:13px}.import-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}.import-fields label{font-size:12px;color:#58655c;display:block}.import-fields select{display:block;width:100%;margin-top:5px;border:1px solid #dce3dc;border-radius:9px;background:white;padding:9px;font-size:12px;min-width:0}.import-table-wrap{overflow:auto;background:white;border:1px solid var(--line);border-radius:12px;margin-top:10px}.import-table-wrap table{border-collapse:collapse;width:100%;font-size:12px;min-width:430px}.import-table-wrap th,.import-table-wrap td{text-align:left;padding:9px;border-bottom:1px solid var(--line);max-width:180px;overflow-wrap:anywhere}.import-table-wrap th{background:#edf2ed;color:#526056}.import-table-wrap tr:last-child td{border-bottom:0}.import-actions{display:flex;gap:8px;margin-top:16px}.import-actions .btn{font-size:14px;padding:12px}@media(min-width:600px){.import-overlay{align-items:center;padding:20px}.import-sheet{border-radius:22px;max-height:90vh}.import-fields{grid-template-columns:repeat(3,minmax(0,1fr))}}
 
+
+.bulk-overlay{display:none;position:fixed;inset:0;background:#14251bcc;z-index:25;align-items:flex-end;justify-content:center}.bulk-overlay.show{display:flex}.bulk-sheet{background:var(--bg);width:100%;max-width:760px;max-height:94dvh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px calc(24px + env(safe-area-inset-bottom))}.bulk-toolbar{display:flex;gap:8px;margin:12px 0}.bulk-toolbar input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}.bulk-list{display:grid;gap:9px}.bulk-group{background:#fff;border:1px solid var(--line);border-radius:13px;overflow:hidden}.bulk-group-head{display:flex;align-items:center;gap:9px;padding:12px}.bulk-group-head strong{flex:1;overflow-wrap:anywhere}.bulk-group-head button{border:0;background:#edf2ed;border-radius:8px;padding:7px 9px;color:var(--green);font-size:12px}.bulk-records{padding:0 12px 10px 38px;display:grid;gap:8px}.bulk-record{display:flex;gap:8px;align-items:flex-start;font-size:12px;padding:8px 0;border-top:1px solid var(--line)}.bulk-record span{flex:1;overflow-wrap:anywhere}.bulk-footer{display:flex;gap:8px;position:sticky;bottom:-24px;background:var(--bg);padding:12px 0 2px}.bulk-footer .btn{padding:12px}.bulk-count{font-size:12px;color:var(--muted);margin:8px 0}.bulk-hint{font-size:12px;line-height:1.6;color:#69746c;background:#edf2ed;border-radius:12px;padding:11px;margin-top:10px}@media(min-width:600px){.bulk-overlay{align-items:center;padding:20px}.bulk-sheet{border-radius:22px;max-height:90vh}}
+
 </style>
 </head>
 <body>
 <header><div class="top"><div><h1>出货管家</h1><p>订单跟进 · 日期提醒 · 资料关联</p></div><button class="bell" id="notifyBtn">开启提醒</button></div></header>
 <main class="wrap">
-<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap"><button class="btn primary" id="importExcelBtn" style="font-size:13px">从 Excel 导入订单</button><button class="btn soft" id="exportBackupBtn" style="font-size:13px">备份订单和附件</button><button class="btn" id="importBackupBtn" style="font-size:13px">导入备份</button><input id="backupFileInput" type="file" accept=".json,application/json" hidden></div>
+<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap"><button class="btn primary" id="importExcelBtn" style="font-size:13px">从 Excel 导入订单</button><button class="btn danger" id="bulkDeleteBtn" style="font-size:13px">批量管理 / 删除</button><button class="btn soft" id="exportBackupBtn" style="font-size:13px">备份订单和附件</button><button class="btn" id="importBackupBtn" style="font-size:13px">导入备份</button><input id="backupFileInput" type="file" accept=".json,application/json" hidden></div>
 <div class="stats">
 <div class="stat red"><span>今日 / 已逾期</span><strong id="urgentCount">0</strong></div>
 <div class="stat orange"><span>两天内出货</span><strong id="soonCount">0</strong></div>
@@ -66,6 +69,19 @@
   <section id="mappingArea" hidden><div class="subhead">确认字段对应关系</div><div class="import-fields" id="mappingFields"></div></section>
   <section id="previewArea" hidden><div class="subhead">识别结果预览</div><div id="previewCount" class="import-small"></div><div id="previewTable" class="import-table-wrap"></div><p class="import-small">导入后可以继续编辑订单。已有同订单号的订单会跳过，不会覆盖原有资料。</p></section>
   <div class="import-actions"><button class="btn" id="cancelImportBtn">取消</button><button class="btn primary" id="doImportBtn" disabled>确认导入订单</button></div>
+ </div>
+</div>
+
+
+<div class="bulk-overlay" id="bulkOverlay" role="dialog" aria-modal="true">
+ <div class="bulk-sheet">
+  <div class="import-top"><h2>批量管理订单</h2><button class="x" id="closeBulkBtn" aria-label="关闭">×</button></div>
+  <p class="import-small">先按订单号分组，再展开选择整单或具体记录。同一订单号下的每条记录独立处理。</p>
+  <div class="bulk-toolbar"><input id="bulkSearch" placeholder="搜索订单号、品名、颜色"><label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><input id="bulkShippedOnly" type="checkbox">仅看已出货</label></div>
+  <div class="bulk-count" id="bulkCount">尚未选择记录</div>
+  <div class="bulk-list" id="bulkList"></div>
+  <div class="bulk-hint">整单删除会包含该订单号下尚未出货的记录，执行前会再次提示。删除时会一并移除该批记录的附件；撤销功能仅保留到本次页面会话结束前，请勿刷新页面后再依赖撤销。</div>
+  <div class="bulk-footer"><button class="btn" id="bulkSelectNoneBtn">清空选择</button><button class="btn danger" id="bulkDeleteSelectedBtn">删除所选记录</button><button class="btn primary" id="bulkUndoBtn" disabled>撤销上次删除</button></div>
  </div>
 </div>
 
@@ -132,10 +148,63 @@ $('orderNo').addEventListener('change',()=>{const v=$('orderNo').value.trim().to
 $('orderNo').addEventListener('change',()=>{const v=$('orderNo').value.trim().toLowerCase();const match=orders.find(o=>(o.orderNo||'').toLowerCase()===v);if(!match)return;$('productInfo').value=productInfoOf(match);$('qty').value=match.qty||'';$('shipDate').value=match.shipDate||'';$('actualDate').value=match.actualDate||'';$('docUrl').value=match.docUrl||'';toast('已带出这笔订单的历史信息，可继续修改')});
 $('files').addEventListener('change',e=>{pendingFiles.push(...Array.from(e.target.files||[]));renderAttached();e.target.value=''});
 $('attachedList').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.fileRemove){await delFile(b.dataset.fileRemove);currentFiles=currentFiles.filter(f=>f.id!==b.dataset.fileRemove);renderAttached()}if(b.dataset.pendingRemove!==undefined){pendingFiles.splice(Number(b.dataset.pendingRemove),1);renderAttached()}});
-$('orderForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('orderKey').value||('ord-'+Date.now()+'-'+Math.random().toString(36).slice(2,6));const o={id,orderNo:$('orderNo').value.trim(),productInfo:$('productInfo').value.trim(),qty:$('qty').value.trim(),shipDate:$('shipDate').value.trim(),actualDate:$('actualDate').value.trim(),docUrl:$('docUrl').value.trim(),updatedAt:new Date().toISOString()};if(!o.orderNo||!o.productInfo||!o.qty||!o.shipDate){toast('请填写带 * 的必填项目');return}const validDate=v=>!v||/^\d{4}-\d{2}-\d{2}$/.test(v);if(!validDate(o.shipDate)||!validDate(o.actualDate)){toast('日期请按 YYYY-MM-DD 格式填写或选择历史日期');return}if(orders.some(x=>x.orderNo.toLowerCase()===o.orderNo.toLowerCase()&&x.id!==id)){toast('这个订单号已存在，请检查');return}try{for(const file of pendingFiles){const f=await putFile(file,id);currentFiles.push(f)}const i=orders.findIndex(x=>x.id===id);if(i>=0)orders[i]=o;else orders.push(o);saveOrders();refreshHistory();closeEditor();render();toast('订单已保存');checkReminders()}catch(err){toast('保存失败，请检查手机存储空间')}});
+$('orderForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('orderKey').value||('ord-'+Date.now()+'-'+Math.random().toString(36).slice(2,6));const o={id,orderNo:$('orderNo').value.trim(),productInfo:$('productInfo').value.trim(),qty:$('qty').value.trim(),shipDate:$('shipDate').value.trim(),actualDate:$('actualDate').value.trim(),docUrl:$('docUrl').value.trim(),updatedAt:new Date().toISOString()};if(!o.orderNo||!o.productInfo||!o.qty||!o.shipDate){toast('请填写带 * 的必填项目');return}const validDate=v=>!v||/^\d{4}-\d{2}-\d{2}$/.test(v);if(!validDate(o.shipDate)||!validDate(o.actualDate)){toast('日期请按 YYYY-MM-DD 格式填写或选择历史日期');return}try{for(const file of pendingFiles){const f=await putFile(file,id);currentFiles.push(f)}const i=orders.findIndex(x=>x.id===id);if(i>=0)orders[i]=o;else orders.push(o);saveOrders();refreshHistory();closeEditor();render();toast('订单已保存');checkReminders()}catch(err){toast('保存失败，请检查手机存储空间')}});
 $('orders').addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const o=orders.find(x=>x.id===b.dataset.id);if(!o)return;if(b.dataset.action==='edit'){openEditor(o);return}if(b.dataset.action==='actual'){const val=prompt('请输入实际出货日期（格式：YYYY-MM-DD）',o.actualDate||today());if(val===null)return;if(val&&!/^\d{4}-\d{2}-\d{2}$/.test(val)){toast('日期格式不正确，请使用 YYYY-MM-DD');return}o.actualDate=val;saveOrders();refreshHistory();render();toast(val?'已登记实际出货日期':'已清除实际出货日期');return}if(b.dataset.action==='files'){const fs=await getFiles(o.id);let msg='订单：'+o.orderNo+'\n';if(o.docUrl)msg+='在线文档：'+o.docUrl+'\n';if(!fs.length&&!o.docUrl){toast('这笔订单还没有关联资料');return}if(fs.length){msg+='附件：\n'+fs.map((f,i)=>(i+1)+'. '+f.name).join('\n')+'\n\n输入附件编号打开，取消则返回。';const n=prompt(msg);if(n===null||n.trim()==='')return;const f=fs[Number(n)-1];if(!f){toast('附件编号无效');return}const full=await getFile(f.id);if(full&&full.blob){const url=URL.createObjectURL(full.blob);const a=document.createElement('a');a.href=url;a.download=f.name;a.target='_blank';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000)}else toast('附件暂不可读取，请重新添加')}else if(o.docUrl){window.open(o.docUrl,'_blank','noopener')}}});
 $('notifyBtn').addEventListener('click',async()=>{if(!('Notification'in window)){toast('当前浏览器不支持系统通知；页面内提醒仍可使用');return}try{const p=await Notification.requestPermission();if(p==='granted'){toast('已允许系统通知；请保持 APP 可运行以便检查提醒')}else toast('未允许系统通知，仍可在打开 APP 时查看提醒')}catch(e){toast('请在浏览器设置中允许通知')}});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){checkReminders();render()}});window.addEventListener('focus',()=>{checkReminders();render()});
+
+/* 批量管理 / 删除：以记录 ID 为单位，订单号仅用于分组 */
+let bulkSelected=new Set(), bulkExpanded=new Set(), lastDeletedBatch=null;
+function groupOrders(list){
+ const map=new Map();
+ for(const o of list){const key=String(o.orderNo||'（无订单号）');if(!map.has(key))map.set(key,[]);map.get(key).push(o)}
+ return [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0],'zh-CN',{numeric:true}));
+}
+function openBulk(){bulkSelected.clear();bulkExpanded.clear();$('bulkSearch').value='';$('bulkShippedOnly').checked=false;$('bulkOverlay').classList.add('show');document.body.style.overflow='hidden';renderBulk();}
+function closeBulk(){$('bulkOverlay').classList.remove('show');document.body.style.overflow='';}
+function renderBulk(){
+ const q=$('bulkSearch').value.trim().toLowerCase(), shippedOnly=$('bulkShippedOnly').checked;
+ const groups=groupOrders(orders).map(([no,items])=>[no,items.filter(o=>(!shippedOnly||!!o.actualDate)&&(!q||[no,productInfoOf(o),o.spec,o.color].join(' ').toLowerCase().includes(q)))]).filter(g=>g[1].length);
+ const visibleIds=new Set(groups.flatMap(g=>g[1].map(o=>o.id)));
+ for(const id of [...bulkSelected])if(!orders.some(o=>o.id===id))bulkSelected.delete(id);
+ $('bulkCount').textContent='已选择 '+bulkSelected.size+' 条记录；显示 '+groups.reduce((n,g)=>n+g[1].length,0)+' 条记录';
+ $('bulkList').innerHTML=groups.length?groups.map(([no,items])=>{
+  const ids=items.map(o=>o.id), all=ids.length>0&&ids.every(id=>bulkSelected.has(id)), expanded=bulkExpanded.has(no);
+  return '<section class="bulk-group"><div class="bulk-group-head"><input type="checkbox" data-group="'+esc(no)+'" '+(all?'checked':'')+' aria-label="选择整单"><strong>'+esc(no)+' <span class="muted">('+items.length+' 条)</span></strong><button type="button" data-expand="'+esc(no)+'">'+(expanded?'收起':'展开记录')+'</button></div>'+(expanded?'<div class="bulk-records">'+items.map(o=>'<label class="bulk-record"><input type="checkbox" data-record="'+esc(o.id)+'" '+(bulkSelected.has(o.id)?'checked':'')+'><span><b>'+esc(productInfoOf(o)||'未填写产品信息')+'</b><br>数量：'+esc(o.qty||'未填')+' · 计划：'+esc(o.shipDate||'未填')+' · 实际：'+esc(o.actualDate||'未出货')+'</span></label>').join('')+'</div>':'')+'</section>';
+ }).join(''):'<div class="empty">没有符合条件的记录。</div>';
+ $('bulkUndoBtn').disabled=!lastDeletedBatch;
+}
+$('bulkDeleteBtn').addEventListener('click',openBulk);
+$('closeBulkBtn').addEventListener('click',closeBulk);
+$('bulkOverlay').addEventListener('click',e=>{if(e.target===$('bulkOverlay'))closeBulk()});
+$('bulkSearch').addEventListener('input',renderBulk);
+$('bulkShippedOnly').addEventListener('change',renderBulk);
+$('bulkList').addEventListener('click',e=>{const b=e.target.closest('button[data-expand]');if(!b)return;const no=b.dataset.expand;if(bulkExpanded.has(no))bulkExpanded.delete(no);else bulkExpanded.add(no);renderBulk()});
+$('bulkList').addEventListener('change',e=>{
+ const group=e.target.dataset.group, id=e.target.dataset.record;
+ if(group!==undefined){const key=group;const items=orders.filter(o=>String(o.orderNo||'（无订单号）')===key);if(e.target.checked)items.forEach(o=>bulkSelected.add(o.id));else items.forEach(o=>bulkSelected.delete(o.id));bulkExpanded.add(key);renderBulk();}
+ else if(id){if(e.target.checked)bulkSelected.add(id);else bulkSelected.delete(id);renderBulk();}
+});
+$('bulkSelectNoneBtn').addEventListener('click',()=>{bulkSelected.clear();renderBulk()});
+$('bulkDeleteSelectedBtn').addEventListener('click',async()=>{
+ const targets=orders.filter(o=>bulkSelected.has(o.id));if(!targets.length){toast('请先选择要删除的记录');return}
+ const ids=new Set(targets.map(o=>o.id));
+ const grouped=new Map();targets.forEach(o=>grouped.set(o.orderNo,(grouped.get(o.orderNo)||0)+1));
+ const wholeOrders=[...grouped.entries()].filter(([no,n])=>n===orders.filter(o=>o.orderNo===no).length);
+ const warning=wholeOrders.length?'\n其中 '+wholeOrders.length+' 个订单号将整单删除，可能包含未出货记录。':'';
+ if(!confirm('确定删除 '+targets.length+' 条记录，涉及 '+grouped.size+' 个订单号？'+warning+'\n此操作可在当前页面会话中撤销。'))return;
+ const removed=[];
+ for(const o of orders){if(ids.has(o.id)){const fs=await getFiles(o.id);removed.push({order:{...o},files:fs,index:orders.indexOf(o)});for(const f of fs)await delFile(f.id)}}
+ lastDeletedBatch=removed;orders=orders.filter(o=>!ids.has(o.id));saveOrders();refreshHistory();render();renderBulk();toast('已删除 '+removed.length+' 条记录，可撤销本次删除');
+});
+$('bulkUndoBtn').addEventListener('click',async()=>{
+ if(!lastDeletedBatch||!lastDeletedBatch.length)return;
+ const existing=new Set(orders.map(o=>o.id));
+ const restore=lastDeletedBatch.filter(x=>!existing.has(x.order.id)).sort((a,b)=>a.index-b.index);
+ for(const item of restore){orders.splice(Math.min(item.index,orders.length),0,item.order);for(const f of item.files){if(db){await new Promise(resolve=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(f);tx.oncomplete=resolve;tx.onerror=resolve})}}}
+ const count=restore.length;lastDeletedBatch=null;saveOrders();refreshHistory();render();renderBulk();toast('已恢复 '+count+' 条记录及关联附件');
+});
+
 loadOrders();openDB().then(()=>{render();checkReminders()});if('serviceWorker'in navigator&&location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));
 })();
 </script>

@@ -1,0 +1,11 @@
+{
+  "name": "随手记事管家",
+  "short_name": "随手记事",
+  "description": "快速记录事件并管理提醒",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f6fa",
+  "theme_color": "#f6f7fb",
+  "lang": "zh-CN"
+}

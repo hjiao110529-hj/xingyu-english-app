@@ -135,7 +135,7 @@ async function handle(request, env) {
   }
   return json({ok:false,error:"接口不存在"},404);
 }
-async function scheduled(event, env, ctx) {
+async function runScheduled(event, env, ctx) {
   const now=Date.now(), isoNow=new Date(now).toISOString();
   const {results=[]}=await env.DB.prepare("SELECT * FROM reminders WHERE enabled=1 AND reminder_mode!='none'").all();
   const subs=(await env.DB.prepare("SELECT id,endpoint,p256dh,auth FROM push_subscriptions").all()).results||[];
@@ -175,5 +175,5 @@ async function scheduled(event, env, ctx) {
 }
 export default {
   fetch(request,env,ctx) { return handle(request,env); },
-  scheduled(event,env,ctx) { return scheduled(event,env,ctx); }
+  scheduled(event,env,ctx) { return runScheduled(event,env,ctx); }
 };

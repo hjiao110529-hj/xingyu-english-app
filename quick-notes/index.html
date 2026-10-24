@@ -51,7 +51,7 @@ const $=id=>document.getElementById(id);
 const STORAGE_KEY='quick-notes-manager-v1';\nlet swRegistration=null;
 let records=[];let selectedType='特殊事件';let noticeTimer;let notifiedIds=new Set();
 try{records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');if(!Array.isArray(records))records=[];}catch(e){records=[];}records.forEach(r=>{if(!r.reminderMode){r.reminderMode=r.type==='紧急事件'?'repeat':'before';r.reminderMinutes=r.type==='紧急事件'?20:60;}});
-function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records));}catch(e){showNotice('本机存储空间不足，请先导出备份。',true);}}\nconst API_BASE='https://suishou-note-push.hjiao529.workers.dev';
+function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records));}catch(e){showNotice('本机存储空间不足，请先导出备份。',true);}}\nconst API_BASE='https://suishou-note-push.hjiao110529.workers.dev';
 async function apiPost(path,data){const res=await fetch(API_BASE+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const out=await res.json().catch(()=>({}));if(!res.ok||out.ok===false)throw new Error(out.error||'后台请求失败');return out;}
 async function syncReminder(r){
  if(!r||!r.id||!r.content)return;

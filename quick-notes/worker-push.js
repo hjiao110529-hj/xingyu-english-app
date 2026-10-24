@@ -6,6 +6,7 @@
  */
 const APP_ORIGIN = "https://hjiao110529-hj.github.io";
 const APP_URL = APP_ORIGIN + "/xingyu-english-app/quick-notes/";
+const APP_TIME_ZONE = "Asia/Shanghai";
 
 const cors = {
   "Access-Control-Allow-Origin": APP_ORIGIN,
@@ -17,7 +18,7 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { ...cors, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
 });
 const b64u = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
-const fromB64u = s => Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")+"===".slice((s.length+3)%4)), c=>c.charCodeAt(0));
+const fromB64u = s => Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")+"=".repeat((4-s.length%4)%4)), c=>c.charCodeAt(0));
 const enc = new TextEncoder();
 async function hmac(key, data) {
   const k = await crypto.subtle.importKey("raw", key, {name:"HMAC",hash:"SHA-256"}, false, ["sign"]);
@@ -39,7 +40,7 @@ async function vapidToken(endpoint, env) {
   const aud = url.origin;
   const now = Math.floor(Date.now()/1000);
   const head = b64u(enc.encode(JSON.stringify({typ:"JWT",alg:"ES256"})));
-  const body = b64u(enc.encode(JSON.stringify({aud,exp:now+12*60*60,sub:"mailto:push-admin@example.com"})));
+  const body = b64u(enc.encode(JSON.stringify({aud,exp:now+12*60*60,sub:"mailto:admin@example.com"})));
   const unsigned = head+"."+body;
   const pub = fromB64u(env.VAPID_PUBLIC_KEY);
   const priv = fromB64u(env.VAPID_PRIVATE_KEY);
@@ -137,25 +138,39 @@ async function handle(request, env) {
 }
 async function runScheduled(event, env, ctx) {
   const now=Date.now(), isoNow=new Date(now).toISOString();
+  const localParts = epoch => Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:APP_TIME_ZONE,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(new Date(epoch)).filter(p=>p.type!=="literal").map(p=>[p.type,p.value]));
+  const localDateKey = epoch => { const p=localParts(epoch); return `${p.year}-${p.month}-${p.day}`; };
+  const zonedWallClockToEpoch = (dateKey, clock) => {
+    const [y,m,d]=dateKey.split("-").map(Number), [hh,mm]=clock.split(":").map(Number);
+    const target=Date.UTC(y,m-1,d,hh,mm,0); let guess=target;
+    for(let i=0;i<3;i++){ const p=localParts(guess); const represented=Date.UTC(Number(p.year),Number(p.month)-1,Number(p.day),Number(p.hour),Number(p.minute),Number(p.second)); guess += target-represented; }
+    return guess;
+  };
   const {results=[]}=await env.DB.prepare("SELECT * FROM reminders WHERE enabled=1 AND reminder_mode!='none'").all();
   const subs=(await env.DB.prepare("SELECT id,endpoint,p256dh,auth FROM push_subscriptions").all()).results||[];
   for (const r of results) {
     if (!r.event_time || !subs.length) continue;
     const eventAt=Date.parse(r.event_time);
-    if (!Number.isFinite(eventAt)) continue;
+    if (!Number.isFinite(eventAt) && !r.repeat_daily) continue;
     let due=false, key="";
     if (r.reminder_mode==="repeat") {
       const interval=Math.max(1,Number(r.repeat_minutes)||20)*60000;
       const base=Date.parse(r.last_sent_at||r.created_at||isoNow);
-      if (now>=base+interval) { due=true; key="repeat:"+Math.floor(now/interval); }
+      if (Number.isFinite(base) && now>=base+interval) {
+        const slot=Math.floor((now-base)/interval);
+        due=true; key="repeat:"+new Date(base+slot*interval).toISOString();
+      }
     } else if (r.reminder_mode==="before") {
-      const at=eventAt-Math.max(1,Number(r.reminder_minutes)||60)*60000;
+      const minutes=Math.max(1,Number(r.reminder_minutes)||60);
       if (r.repeat_daily) {
-        const date=new Date(now).toISOString().slice(0,10);
+        const date=localDateKey(now);
         const t=r.event_time.includes("T")?r.event_time.split("T")[1].slice(0,5):"00:00";
-        const dailyAt=Date.parse(date+"T"+t+":00Z");
-        if (now>=dailyAt-Math.max(1,Number(r.reminder_minutes)||60)*60000 && now<dailyAt) { due=true; key="before:"+date; }
-      } else if (now>=at && now<eventAt) { due=true; key="before:once"; }
+        const dailyAt=zonedWallClockToEpoch(date,t);
+        if (now>=dailyAt-minutes*60000 && now<dailyAt) { due=true; key="before:"+date; }
+      } else {
+        const at=eventAt-minutes*60000;
+        if (now>=at && now<eventAt) { due=true; key="before:once"; }
+      }
     }
     if (!due) continue;
     try {

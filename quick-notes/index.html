@@ -50,7 +50,7 @@
 const $=id=>document.getElementById(id);
 const STORAGE_KEY='quick-notes-manager-v1';
 let records=[];let selectedType='特殊事件';let noticeTimer;let notifiedIds=new Set();
-try{records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');if(!Array.isArray(records))records=[];}catch(e){records=[];}
+try{records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');if(!Array.isArray(records))records=[];}catch(e){records=[];}records.forEach(r=>{if(!r.reminderMode){r.reminderMode=r.type==='紧急事件'?'repeat':'before';r.reminderMinutes=r.type==='紧急事件'?20:60;}});
 function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records));}catch(e){showNotice('本机存储空间不足，请先导出备份。',true);}}
 function showNotice(msg,bad){const n=$('notice');n.textContent=msg;n.style.background=bad?'#fff0ef':'#edf8ef';n.style.color=bad?'#bf3c3c':'#327645';n.classList.add('show');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>n.classList.remove('show'),2600);}
 function localDate(d){const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());}

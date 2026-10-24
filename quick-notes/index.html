@@ -55,7 +55,7 @@ let records=[];let selectedType='特殊事件';let noticeTimer;let notifiedIds=n
 try{records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');if(!Array.isArray(records))records=[];}catch(e){records=[];}records.forEach(r=>{if(!r.reminderMode){r.reminderMode=r.type==='紧急事件'?'repeat':'before';r.reminderMinutes=r.type==='紧急事件'?20:60;}});
 function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records));}catch(e){showNotice('本机存储空间不足，请先导出备份。',true);}}
 const API_BASE='https://suishou-note-push.hjiao110529.workers.dev';
-async function fetchWithTimeout(url,options={},timeoutMs=10000){const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),timeoutMs);try{return await fetch(url,{...options,signal:controller.signal,cache:'no-store'});}catch(e){if(e.name==='AbortError')throw new Error('连接后台超时（10秒），请检查 Worker 部署和网络。');throw e;}finally{clearTimeout(timer);}}
+async function fetchWithTimeout(url,options={},timeoutMs=10000){const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),timeoutMs);const step=new URL(url).pathname;try{return await fetch(url,{...options,signal:controller.signal,cache:'no-store'});}catch(e){if(e.name==='AbortError')throw new Error('后台请求超时（10秒）：'+step+'。配置接口可访问，当前请求可能被网络拦截或后台处理未返回。');if(e instanceof TypeError)throw new Error('无法访问后台接口：'+step+'。可能是跨域限制或网络连接失败。');throw e;}finally{clearTimeout(timer);}}
 async function apiPost(path,data){const res=await fetchWithTimeout(API_BASE+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const out=await res.json().catch(()=>({}));if(!res.ok||out.ok===false)throw new Error(out.error||'后台请求失败（HTTP '+res.status+'）');return out;}
 async function syncReminder(r){
  if(!r||!r.id||!r.content)return;

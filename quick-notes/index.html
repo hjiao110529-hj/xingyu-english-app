@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f7fb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="随手记事管家">
+<title>随手记事管家</title>
+<style>
+:root{--bg:#f5f6fa;--card:#fff;--ink:#202433;--muted:#778094;--line:#e8eaf1;--blue:#4968df;--red:#d94b4b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;padding:env(safe-area-inset-top) 0 calc(24px + env(safe-area-inset-bottom))}main{max-width:640px;margin:auto;padding:18px 16px 28px}.top{display:flex;align-items:center;justify-content:space-between;margin:8px 0 18px}.brand{font-size:24px;font-weight:800;letter-spacing:.2px}.sub{font-size:12px;color:var(--muted);margin-top:5px}.pill{font-size:12px;color:#5265bc;background:#e9edff;border-radius:99px;padding:7px 10px}.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px;box-shadow:0 5px 18px #202b4a08}.section-title{font-weight:750;font-size:16px;margin:0 0 14px}.label{font-size:13px;font-weight:650;color:#5e6678;display:block;margin:14px 0 8px}textarea,input,select{font:inherit;width:100%;border:1px solid #dfe3ed;border-radius:12px;padding:13px 12px;background:#fff;color:var(--ink);outline:none}textarea{min-height:98px;resize:vertical;line-height:1.5}textarea:focus,input:focus,select:focus{border-color:#8798ed;box-shadow:0 0 0 3px #4968df15}.voice-row{display:flex;gap:8px;margin-top:8px}.btn{border:0;border-radius:12px;padding:12px 14px;font-weight:700;font-size:14px;cursor:pointer}.btn-primary{background:var(--blue);color:white;flex:1}.btn-light{background:#f0f2f8;color:#48516a}.btn-danger{background:#fff0f0;color:#bf3c3c}.types{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.type{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 8px;text-align:center;font-size:14px;font-weight:650;color:#586176}.type.active{border-color:var(--blue);background:#edf0ff;color:#354fc0;box-shadow:inset 0 0 0 1px var(--blue)}.hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:8px}.suggestions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.suggestion{border:1px solid #dce2ff;background:#f5f6ff;color:#485ab6;border-radius:10px;padding:8px 10px;font-size:13px;text-align:left;max-width:100%;overflow-wrap:anywhere}.suggestion small{display:block;color:#818ab5;font-size:10px;margin-top:3px}.toolbar{display:flex;gap:8px}.toolbar input{flex:1;min-width:0}.entry{border:1px solid var(--line);border-radius:14px;padding:13px;margin-top:9px;background:#fff}.entry-head{display:flex;justify-content:space-between;align-items:center;gap:8px}.tag{font-size:11px;border-radius:7px;padding:5px 7px;background:#edf0ff;color:#4d60c4;white-space:nowrap}.tag.urgent{background:#fff0ef;color:#c73d37}.tag.general{background:#eef7ee;color:#397f49}.tag.unimportant{background:#f0f1f4;color:#777e8e}.entry-content{font-size:15px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;margin:10px 0}.entry-time{font-size:12px;color:var(--muted)}.entry-actions{display:flex;justify-content:flex-end;margin-top:8px}.empty{text-align:center;color:#9299a9;font-size:13px;padding:22px 6px}.small-link{font-size:12px;color:#6877ce;background:none;border:0;padding:8px 0}.notice{display:none;border-radius:10px;padding:10px 12px;background:#edf8ef;color:#327645;font-size:13px;margin-bottom:12px}.notice.show{display:block}@media(min-width:560px){main{padding-top:26px}.types{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<main>
+<header class="top"><div><div class="brand">随手记事管家</div><div class="sub">快速记录 · 自动保存 · 历史内容一键复用</div></div><span class="pill">独立版 · v1.0</span></header>
+<div id="notice" class="notice" role="status"></div>
+<section class="card">
+<h2 class="section-title">记一件事</h2>
+<label class="label" for="content">事件内容</label>
+<textarea id="content" placeholder="输入要记下的事情……" autocomplete="off"></textarea>
+<div class="voice-row"><button class="btn btn-light" id="voiceBtn" type="button">🎙️ 语音输入</button><button class="btn btn-light" id="clearBtn" type="button">清空内容</button></div>
+<div id="suggestions" class="suggestions" aria-label="历史相似内容"></div>
+<div class="hint">输入几个字后会显示历史相似内容，点选即可复用。若本机浏览器不支持语音识别，可点输入框后使用 iPhone 键盘上的听写麦克风。</div>
+<label class="label">事件类型</label>
+<div class="types" id="types">
+<button class="type" data-type="紧急事件" type="button">🔴 紧急事件</button>
+<button class="type" data-type="一般事件" type="button">🔵 一般事件</button>
+<button class="type active" data-type="特殊事件" type="button">🟣 特殊事件</button>
+<button class="type" data-type="不重要事件" type="button">⚪ 不重要事件</button>
+</div>
+<label class="label" for="eventTime">事件日期时间</label>
+<input id="eventTime" type="datetime-local" value="2026-10-24T12:30">
+<div class="hint">默认按你提供的时间设置；你可以自行修改。记录保存时间会另外自动记录。</div>
+<div class="voice-row" style="margin-top:16px"><button class="btn btn-primary" id="saveBtn" type="button">保存这条记录</button></div>
+</section>
+<section class="card">
+<h2 class="section-title">历史记录</h2>
+<div class="toolbar"><input id="search" placeholder="搜索内容 / 日期" aria-label="搜索历史记录"><select id="filter" aria-label="按类型筛选"><option value="">全部类型</option><option>紧急事件</option><option>一般事件</option><option>特殊事件</option><option>不重要事件</option></select></div>
+<div id="entries"></div>
+<div class="toolbar" style="margin-top:12px"><button class="btn btn-light" id="exportBtn" type="button">导出备份</button><button class="btn btn-light" id="importBtn" type="button">导入备份</button><input id="importFile" type="file" accept="application/json,.json" hidden></div>
+<div class="hint">记录保存在当前 iPhone 浏览器本地。清除浏览器网站数据或更换设备前，请先导出备份。</div>
+</section>
+</main>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const STORAGE_KEY='quick-notes-manager-v1';
+let records=[];let selectedType='特殊事件';let noticeTimer;
+try{records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');if(!Array.isArray(records))records=[];}catch(e){records=[];}
+function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records));}catch(e){showNotice('本机存储空间不足，请先导出备份。',true);}}
+function showNotice(msg,bad){const n=$('notice');n.textContent=msg;n.style.background=bad?'#fff0ef':'#edf8ef';n.style.color=bad?'#bf3c3c':'#327645';n.classList.add('show');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>n.classList.remove('show'),2600);}
+function localDate(d){const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
+function typeClass(t){return t==='紧急事件'?'urgent':t==='一般事件'?'general':t==='不重要事件'?'unimportant':'';}
+function setType(t){selectedType=t;document.querySelectorAll('.type').forEach(b=>b.classList.toggle('active',b.dataset.type===t));}
+document.querySelectorAll('.type').forEach(b=>b.addEventListener('click',()=>setType(b.dataset.type)));
+function normalized(s){return s.toLowerCase().replace(/[\s，。！？、,.!?;；:：]/g,'');}
+function renderSuggestions(){
+ const q=normalized($('content').value.trim());const box=$('suggestions');box.innerHTML='';
+ if(!q){return;}
+ const seen=new Set();const matches=records.filter(r=>normalized(r.content).includes(q)||q.includes(normalized(r.content))).sort((a,b)=>b.createdAt-a.createdAt).filter(r=>{const k=normalized(r.content);if(seen.has(k))return false;seen.add(k);return true;}).slice(0,5);
+ matches.forEach(r=>{const b=document.createElement('button');b.type='button';b.className='suggestion';b.textContent=r.content;b.addEventListener('click',()=>{$('content').value=r.content;setType(r.type);if(r.eventTime)$('eventTime').value=r.eventTime;renderSuggestions();showNotice('已复用历史内容，可修改后另存为新记录。');});const sm=document.createElement('small');sm.textContent=r.type+' · '+localDate(new Date(r.createdAt));b.appendChild(sm);box.appendChild(b);});
+}
+function renderEntries(){
+ const q=normalized($('search').value.trim()),f=$('filter').value;const root=$('entries');root.innerHTML='';
+ const list=records.filter(r=>(!q||normalized(r.content).includes(q)||r.eventTime.replace('T',' ').includes($('search').value.trim()))&&(!f||r.type===f)).sort((a,b)=>b.createdAt-a.createdAt);
+ if(!list.length){const e=document.createElement('div');e.className='empty';e.textContent=records.length?'没有符合条件的记录':'还没有记录，先添加第一条。';root.appendChild(e);return;}
+ list.forEach(r=>{const card=document.createElement('article');card.className='entry';const head=document.createElement('div');head.className='entry-head';const tag=document.createElement('span');tag.className='tag '+typeClass(r.type);tag.textContent=r.type;const time=document.createElement('span');time.className='entry-time';time.textContent='事件时间：'+(r.eventTime||'未设置');head.append(tag,time);const content=document.createElement('div');content.className='entry-content';content.textContent=r.content;const created=document.createElement('div');created.className='entry-time';created.textContent='记录于：'+localDate(new Date(r.createdAt));const actions=document.createElement('div');actions.className='entry-actions';const reuse=document.createElement('button');reuse.className='btn btn-light';reuse.type='button';reuse.textContent='复用';reuse.addEventListener('click',()=>{$('content').value=r.content;setType(r.type);$('eventTime').value=r.eventTime||'';window.scrollTo({top:0,behavior:'smooth'});renderSuggestions();showNotice('已填入编辑区；保存后会新增一条记录。');});const del=document.createElement('button');del.className='btn btn-danger';del.type='button';del.textContent='删除';del.style.marginLeft='7px';del.addEventListener('click',()=>{if(confirm('确定删除这条记录吗？')){records=records.filter(x=>x.id!==r.id);persist();renderEntries();showNotice('记录已删除。');}});actions.append(reuse,del);card.append(head,content,created,actions);root.appendChild(card);});
+}
+$('content').addEventListener('input',renderSuggestions);
+$('search').addEventListener('input',renderEntries);$('filter').addEventListener('change',renderEntries);
+$('clearBtn').addEventListener('click',()=>{$('content').value='';renderSuggestions();$('content').focus();});
+$('saveBtn').addEventListener('click',()=>{const content=$('content').value.trim();if(!content){showNotice('请先输入事件内容。',true);$('content').focus();return;}records.push({id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random()),content,type:selectedType,eventTime:$('eventTime').value,createdAt:Date.now()});persist();$('content').value='';setType('特殊事件');$('eventTime').value='2026-10-24T12:30';renderSuggestions();renderEntries();showNotice('已保存。相同内容再次保存会新增记录，不会覆盖旧记录。');});
+$('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({app:'随手记事管家',version:1,exportedAt:new Date().toISOString(),records},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='随手记事管家备份-'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);showNotice('备份文件已生成。');});
+$('importBtn').addEventListener('click',()=>$('importFile').click());
+$('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());const incoming=Array.isArray(data)?data:data.records;if(!Array.isArray(incoming))throw new Error('format');const ids=new Set(records.map(r=>r.id));let count=0;incoming.forEach(r=>{if(r&&r.content&&r.type&&!ids.has(r.id)){records.push({id:r.id||String(Date.now())+Math.random(),content:String(r.content),type:r.type,eventTime:r.eventTime||'',createdAt:Number(r.createdAt)||Date.now()});count++;}});persist();renderEntries();showNotice('导入完成，新增 '+count+' 条记录。');}catch(err){showNotice('文件格式不正确，无法导入。',true);}e.target.value='';});
+let recognition=null;const voiceBtn=$('voiceBtn');
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SpeechRecognition){recognition=new SpeechRecognition();recognition.lang='zh-CN';recognition.continuous=false;recognition.interimResults=false;recognition.onstart=()=>{voiceBtn.textContent='🎙️ 正在听…';};recognition.onresult=e=>{const text=e.results[0][0].transcript;$('content').value=($('content').value.trim()?$('content').value.trim()+' ':'')+text;renderSuggestions();};recognition.onerror=()=>showNotice('语音识别暂不可用，请使用 iPhone 键盘听写。',true);recognition.onend=()=>voiceBtn.textContent='🎙️ 语音输入';}
+voiceBtn.addEventListener('click',()=>{if(recognition){try{recognition.start();}catch(e){showNotice('请稍后再试，或使用键盘听写。',true);}}else{showNotice('当前浏览器不支持应用内语音识别：点输入框，再点 iPhone 键盘上的麦克风听写。');$('content').focus();}});
+renderEntries();renderSuggestions();
+})();
+</script>
+</body>
+</html>

@@ -55,7 +55,7 @@ let pushStage='尚未开始';
 let records=[];let selectedType='特殊事件';let noticeTimer;let notifiedIds=new Set();
 try{records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');if(!Array.isArray(records))records=[];}catch(e){records=[];}records.forEach(r=>{if(!r.reminderMode){r.reminderMode=r.type==='紧急事件'?'repeat':'before';r.reminderMinutes=r.type==='紧急事件'?20:60;}});
 function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records));}catch(e){showNotice('本机存储空间不足，请先导出备份。',true);}}
-const APP_BUILD='诊断版2026-10-25-v11';const API_BASE='https://suishou-note-push.hjiao110529.workers.dev/';
+const APP_BUILD='诊断版2026-10-25-v12';const API_BASE='https://suishou-note-push.hjiao110529.workers.dev/';
 function apiUrl(path){const value=String(path??'').replace(/^\/+/, '');return new URL(value,API_BASE).href;}
 async function fetchWithTimeout(url,options={},timeoutMs=10000){
  const step=new URL(url).pathname;

@@ -51,6 +51,7 @@
 const $=id=>document.getElementById(id);
 const STORAGE_KEY='quick-notes-manager-v1';
 let swRegistration=null;
+let pushStage='尚未开始';
 let records=[];let selectedType='特殊事件';let noticeTimer;let notifiedIds=new Set();
 try{records=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');if(!Array.isArray(records))records=[];}catch(e){records=[];}records.forEach(r=>{if(!r.reminderMode){r.reminderMode=r.type==='紧急事件'?'repeat':'before';r.reminderMinutes=r.type==='紧急事件'?20:60;}});
 function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(records));}catch(e){showNotice('本机存储空间不足，请先导出备份。',true);}}
@@ -94,20 +95,27 @@ async function syncReminder(r){
 function toBase64UrlBytes(s){const pad='='.repeat((4-s.length%4)%4);const raw=atob(s.replace(/-/g,'+').replace(/_/g,'/')+pad);return Uint8Array.from(raw,ch=>ch.charCodeAt(0));}
 function btnProgress(message){const btn=$('notifyBtn');if(btn)btn.textContent=message;}
 async function enableRemotePush(){
+ pushStage='检查 iOS 推送能力';
  btnProgress('正在检查系统推送支持…');
  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window))throw new Error('当前环境不支持网页推送；请确认从 iPhone 主屏幕图标打开。');
+ pushStage='注册 Service Worker';
  btnProgress('正在注册通知服务…');
  swRegistration=swRegistration||await navigator.serviceWorker.register('./sw.js',{scope:'./'});
+ pushStage='请求系统通知权限';
  btnProgress('请在系统弹窗中允许通知…');
  const permission=await Notification.requestPermission();
  if(permission!=='granted')throw new Error('没有获得通知权限，请在 iPhone 设置中允许此网页应用发送通知。');
+ pushStage='获取后台配置 /api/config';
  btnProgress('正在连接后台配置…');const cfgRes=await fetchWithTimeout('https://suishou-note-push.hjiao110529.workers.dev/api/config',{},10000);
  if(!cfgRes.ok)throw new Error('无法连接推送后台配置。');
  const cfg=await cfgRes.json();
  if(!cfg.publicKey)throw new Error('后台尚未配置 VAPID 公钥。');
+ pushStage='建立浏览器推送订阅';
  btnProgress('正在建立推送订阅…');let sub=await swRegistration.pushManager.getSubscription();
  if(!sub)sub=await swRegistration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:toBase64UrlBytes(cfg.publicKey)});
+ pushStage='保存推送订阅 /api/subscriptions';
  btnProgress('正在保存推送订阅…');await apiPost('/api/subscriptions',sub.toJSON());
+ pushStage='同步提醒记录 /api/reminders';
  btnProgress('正在同步提醒记录…');let synced=0,failed=0;
  for(const r of records){try{await syncReminder(r);synced++;}catch(e){failed++;console.warn('提醒同步失败',e);}}
  if(failed)throw new Error('推送订阅已建立，但同步记录时有 '+failed+' 条失败；成功 '+synced+' 条。请检查后台数据库和网络后重试。');
@@ -142,7 +150,7 @@ $('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify
 $('importBtn').addEventListener('click',()=>$('importFile').click());
 $('importFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());const incoming=Array.isArray(data)?data:data.records;if(!Array.isArray(incoming))throw new Error('format');const ids=new Set(records.map(r=>r.id));let count=0;incoming.forEach(r=>{if(r&&r.content&&r.type&&!ids.has(r.id)){records.push({id:r.id||String(Date.now())+Math.random(),content:String(r.content),type:r.type,eventTime:r.eventTime||'',repeatDaily:!!r.repeatDaily,reminderMode:r.reminderMode||(r.type==='紧急事件'?'repeat':'before'),reminderMinutes:Number(r.reminderMinutes)||(r.type==='紧急事件'?20:60),createdAt:Number(r.createdAt)||Date.now(),lastReminderAt:Number(r.lastReminderAt)||0,lastReminderDate:r.lastReminderDate||''});count++;}});persist();incoming.forEach(r=>{if(r&&r.content&&r.type)syncReminder(r).catch(()=>{});});renderEntries();showNotice('导入完成，新增 '+count+' 条记录。');}catch(err){showNotice('文件格式不正确，无法导入。',true);}e.target.value='';});
 ['reminderMode','reminderMinutes'].forEach(id=>$(id).addEventListener('change',()=>{$('reminderTouched').value='1';updateReminderSummary();}));const touched=document.createElement('input');touched.type='hidden';touched.id='reminderTouched';touched.value='';$('reminderMode').parentNode.appendChild(touched);// 保留已注册的 Service Worker，避免每次启动都注销并重新注册。
-$('notifyBtn').textContent='开启系统推送';$('notifyBtn').addEventListener('click',async()=>{const btn=$('notifyBtn');btn.disabled=true;btn.textContent='开始检查…';showNotice('已收到点击，正在检查系统推送支持。');try{const n=await enableRemotePush();showNotice('推送订阅已保存，已尝试同步 '+n+' 条记录。请再进行一次真实通知测试。');btn.textContent='推送已连接';}catch(e){showNotice('推送失败：'+(e&&e.message?e.message:String(e||'未知错误')),true);btn.textContent='重新连接推送';}finally{btn.disabled=false;}});function checkReminders(){const now=Date.now(),today=new Date(now);const dateKey=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');let changed=false;records.forEach(r=>{if(!r.reminderMode||r.reminderMode==='none'||!r.eventTime)return;let eventAt;if(r.repeatDaily){const parts=r.eventTime.split('T');const clock=(parts[1]||'00:00').slice(0,5);eventAt=new Date(dateKey+'T'+clock).getTime();}else eventAt=new Date(r.eventTime).getTime();if(!Number.isFinite(eventAt))return;let due=false;if(r.reminderMode==='repeat'){const interval=Math.max(1,Number(r.reminderMinutes)||20)*60000;const base=Number(r.lastReminderAt)||Number(r.createdAt)||now;due=now>=base+interval;}else{const remindAt=eventAt-Math.max(1,Number(r.reminderMinutes)||60)*60000;const notDoneToday=r.repeatDaily?r.lastReminderDate!==dateKey:!r.lastReminderAt;due=now>=remindAt&&now<eventAt&&notDoneToday;}if(due){r.lastReminderAt=now;if(r.repeatDaily&&r.reminderMode==='before')r.lastReminderDate=dateKey;changed=true;showNotice('提醒：'+r.content);if('Notification' in window&&Notification.permission==='granted'){try{new Notification('随手记事管家 · '+r.type,{body:r.content+'（'+reminderLabel(r)+'）'});}catch(e){}}}});if(changed){persist();renderEntries();}}setInterval(checkReminders,30000);checkReminders();updateReminderSummary();showNotice(APP_BUILD+'：已停用旧缓存脚本，请重新打开一次。');let recognition=null;const voiceBtn=$('voiceBtn');
+$('notifyBtn').textContent='开启系统推送';$('notifyBtn').addEventListener('click',async()=>{const btn=$('notifyBtn');btn.disabled=true;btn.textContent='开始检查…';showNotice('已收到点击，正在检查系统推送支持。');try{const n=await enableRemotePush();showNotice('推送订阅已保存，已尝试同步 '+n+' 条记录。请再进行一次真实通知测试。');btn.textContent='推送已连接';}catch(e){showNotice('推送失败【阶段：'+pushStage+'】：'+(e&&e.message?e.message:String(e||'未知错误')),true);btn.textContent='重新连接推送';}finally{btn.disabled=false;}});function checkReminders(){const now=Date.now(),today=new Date(now);const dateKey=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');let changed=false;records.forEach(r=>{if(!r.reminderMode||r.reminderMode==='none'||!r.eventTime)return;let eventAt;if(r.repeatDaily){const parts=r.eventTime.split('T');const clock=(parts[1]||'00:00').slice(0,5);eventAt=new Date(dateKey+'T'+clock).getTime();}else eventAt=new Date(r.eventTime).getTime();if(!Number.isFinite(eventAt))return;let due=false;if(r.reminderMode==='repeat'){const interval=Math.max(1,Number(r.reminderMinutes)||20)*60000;const base=Number(r.lastReminderAt)||Number(r.createdAt)||now;due=now>=base+interval;}else{const remindAt=eventAt-Math.max(1,Number(r.reminderMinutes)||60)*60000;const notDoneToday=r.repeatDaily?r.lastReminderDate!==dateKey:!r.lastReminderAt;due=now>=remindAt&&now<eventAt&&notDoneToday;}if(due){r.lastReminderAt=now;if(r.repeatDaily&&r.reminderMode==='before')r.lastReminderDate=dateKey;changed=true;showNotice('提醒：'+r.content);if('Notification' in window&&Notification.permission==='granted'){try{new Notification('随手记事管家 · '+r.type,{body:r.content+'（'+reminderLabel(r)+'）'});}catch(e){}}}});if(changed){persist();renderEntries();}}setInterval(checkReminders,30000);checkReminders();updateReminderSummary();showNotice(APP_BUILD+'：已停用旧缓存脚本，请重新打开一次。');let recognition=null;const voiceBtn=$('voiceBtn');
 const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(SpeechRecognition){recognition=new SpeechRecognition();recognition.lang='zh-CN';recognition.continuous=false;recognition.interimResults=false;recognition.onstart=()=>{voiceBtn.textContent='🎙️ 正在听…';};recognition.onresult=e=>{const text=e.results[0][0].transcript;$('content').value=($('content').value.trim()?$('content').value.trim()+' ':'')+text;renderSuggestions();};recognition.onerror=()=>showNotice('语音识别暂不可用，请使用 iPhone 键盘听写。',true);recognition.onend=()=>voiceBtn.textContent='🎙️ 语音输入';}
 voiceBtn.addEventListener('click',()=>{if(recognition){try{recognition.start();}catch(e){showNotice('请稍后再试，或使用键盘听写。',true);}}else{showNotice('当前浏览器不支持应用内语音识别：点输入框，再点 iPhone 键盘上的麦克风听写。');$('content').focus();}});

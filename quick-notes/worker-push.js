@@ -9,7 +9,7 @@ const APP_URL = APP_ORIGIN + "/xingyu-english-app/quick-notes/";
 const APP_TIME_ZONE = "Asia/Shanghai";
 
 const cors = {
-  "Access-Control-Allow-Origin": APP_ORIGIN,
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type,Authorization",
   "Vary": "Origin"

@@ -1,4 +1,4 @@
-const CACHE_NAME = "quick-notes-shell-v3";
+const CACHE_NAME = "quick-notes-shell-v4";
 const APP_URL = new URL("./", self.registration.scope).href;
 self.addEventListener("install", event => {
   event.waitUntil((async () => {
